@@ -1,0 +1,132 @@
+{
+ "nodes": {
+  "model.medicare.fct_inpatient_drg_payments": {
+   "metadata": {
+    "schema": "marts",
+    "name": "fct_inpatient_drg_payments",
+    "type": "BASE TABLE"
+   },
+   "columns": {
+    "provider_ccn": {
+     "name": "provider_ccn",
+     "type": "text"
+    },
+    "drg_code": {
+     "name": "drg_code",
+     "type": "text"
+    },
+    "year": {
+     "name": "year",
+     "type": "integer"
+    },
+    "total_discharges": {
+     "name": "total_discharges",
+     "type": "integer"
+    },
+    "avg_submitted_charges": {
+     "name": "avg_submitted_charges",
+     "type": "numeric"
+    },
+    "avg_total_payment": {
+     "name": "avg_total_payment",
+     "type": "numeric"
+    },
+    "avg_medicare_payment": {
+     "name": "avg_medicare_payment",
+     "type": "numeric"
+    },
+    "total_medicare_payment": {
+     "name": "total_medicare_payment",
+     "type": "numeric"
+    }
+   }
+  },
+  "model.medicare.dim_hospitals": {
+   "metadata": {
+    "schema": "marts",
+    "name": "dim_hospitals",
+    "type": "BASE TABLE"
+   },
+   "columns": {
+    "provider_ccn": {
+     "name": "provider_ccn",
+     "type": "text"
+    },
+    "hospital_name": {
+     "name": "hospital_name",
+     "type": "text"
+    },
+    "city": {
+     "name": "city",
+     "type": "text"
+    },
+    "state": {
+     "name": "state",
+     "type": "text"
+    },
+    "zip_code": {
+     "name": "zip_code",
+     "type": "text"
+    },
+    "ownership_type": {
+     "name": "ownership_type",
+     "type": "text"
+    }
+   }
+  },
+  "model.medicare.dim_drg": {
+   "metadata": {
+    "schema": "marts",
+    "name": "dim_drg",
+    "type": "BASE TABLE"
+   },
+   "columns": {
+    "drg_code": {
+     "name": "drg_code",
+     "type": "text"
+    },
+    "drg_description": {
+     "name": "drg_description",
+     "type": "text"
+    },
+    "mdc": {
+     "name": "mdc",
+     "type": "text"
+    }
+   }
+  },
+  "model.medicare.fct_hospital_financials": {
+   "metadata": {
+    "schema": "marts",
+    "name": "fct_hospital_financials",
+    "type": "BASE TABLE"
+   },
+   "columns": {
+    "provider_ccn": {
+     "name": "provider_ccn",
+     "type": "text"
+    },
+    "fiscal_year": {
+     "name": "fiscal_year",
+     "type": "integer"
+    },
+    "net_patient_revenue": {
+     "name": "net_patient_revenue",
+     "type": "numeric"
+    },
+    "operating_expenses": {
+     "name": "operating_expenses",
+     "type": "numeric"
+    },
+    "operating_margin": {
+     "name": "operating_margin",
+     "type": "numeric"
+    },
+    "total_beds": {
+     "name": "total_beds",
+     "type": "integer"
+    }
+   }
+  }
+ }
+}

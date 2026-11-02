@@ -1,27 +1,35 @@
 [project]
 name = "warehouse-copilot"
 version = "0.1.0"
-description = "Text-to-SQL analytics agent with an MCP server and a human approval step"
+description = "Text-to-SQL analytics agent over a Medicare reimbursement warehouse, with an MCP server, a SQL guard and human approval."
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "langgraph>=1.2,<2",
     "langgraph-checkpoint-postgres>=3.2,<4",
-    "langchain>=1.4,<2",
+    "langchain-core>=1.7,<2",
+    # ChatVertexAI (langchain-google-vertexai) is deprecated since 3.2.0; the current
+    # Vertex AI path is ChatGoogleGenerativeAI(vertexai=True) from langchain-google-genai.
     "langchain-google-genai>=4.4,<5",
     "langchain-mcp-adapters>=0.3,<0.4",
-    "mcp>=2.3,<3",
+    # langchain-mcp-adapters requires mcp<2; FastMCP lives at mcp.server.fastmcp.
+    "mcp>=1.30,<2",
     "sqlglot>=30,<31",
     "psycopg[binary,pool]>=3.3,<4",
-    "pydantic>=2",
-    "pyyaml",
-    "pandas",
-    "streamlit>=1.66,<2",
+    "pydantic>=2.10,<3",
+    "pyyaml>=6",
+    "pandas>=2.2",
     "langfuse>=5,<6",
-    "python-dotenv",
+    "streamlit>=1.50,<2",
+    "altair>=5",
 ]
 
 [dependency-groups]
-dev = ["pytest", "ruff"]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=1.0",
+    "ruff>=0.8",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -32,8 +40,16 @@ packages = ["src/warehouse_copilot"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
-markers = ["db: needs a live database connection (DATABASE_URL)"]
+pythonpath = ["src", "."]
+asyncio_mode = "auto"
+markers = [
+    "integration: needs a real DATABASE_URL (read-only role); skipped unless RUN_INTEGRATION=1",
+]
 
 [tool.ruff]
 line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]

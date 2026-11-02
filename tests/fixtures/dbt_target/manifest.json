@@ -1,0 +1,162 @@
+{
+ "nodes": {
+  "model.medicare.fct_inpatient_drg_payments": {
+   "resource_type": "model",
+   "name": "fct_inpatient_drg_payments",
+   "alias": "fct_inpatient_drg_payments",
+   "schema": "marts",
+   "description": "Medicare inpatient payments by hospital, DRG and year (one row per provider_ccn, drg_code, year).",
+   "columns": {
+    "provider_ccn": {
+     "name": "provider_ccn",
+     "description": "CMS Certification Number of the hospital; joins to dim_hospitals.",
+     "data_type": null
+    },
+    "drg_code": {
+     "name": "drg_code",
+     "description": "MS-DRG code; joins to dim_drg.",
+     "data_type": null
+    },
+    "year": {
+     "name": "year",
+     "description": "Calendar year of discharge.",
+     "data_type": null
+    },
+    "total_discharges": {
+     "name": "total_discharges",
+     "description": "Number of Medicare discharges.",
+     "data_type": null
+    },
+    "avg_submitted_charges": {
+     "name": "avg_submitted_charges",
+     "description": "Average amount the hospital billed Medicare per discharge (USD).",
+     "data_type": null
+    },
+    "avg_total_payment": {
+     "name": "avg_total_payment",
+     "description": "Average total payment per discharge incl. beneficiary cost sharing (USD).",
+     "data_type": null
+    },
+    "avg_medicare_payment": {
+     "name": "avg_medicare_payment",
+     "description": "Average amount Medicare paid per discharge (USD).",
+     "data_type": null
+    },
+    "total_medicare_payment": {
+     "name": "total_medicare_payment",
+     "description": "avg_medicare_payment * total_discharges (USD).",
+     "data_type": null
+    }
+   }
+  },
+  "model.medicare.dim_hospitals": {
+   "resource_type": "model",
+   "name": "dim_hospitals",
+   "alias": "dim_hospitals",
+   "schema": "marts",
+   "description": "One row per hospital.",
+   "columns": {
+    "provider_ccn": {
+     "name": "provider_ccn",
+     "description": "CMS Certification Number (primary key).",
+     "data_type": null
+    },
+    "hospital_name": {
+     "name": "hospital_name",
+     "description": "Hospital name.",
+     "data_type": null
+    },
+    "city": {
+     "name": "city",
+     "description": "City.",
+     "data_type": null
+    },
+    "state": {
+     "name": "state",
+     "description": "Two-letter state code.",
+     "data_type": null
+    },
+    "zip_code": {
+     "name": "zip_code",
+     "description": "ZIP code.",
+     "data_type": null
+    },
+    "ownership_type": {
+     "name": "ownership_type",
+     "description": "Ownership category (e.g. nonprofit, government, proprietary).",
+     "data_type": null
+    }
+   }
+  },
+  "model.medicare.dim_drg": {
+   "resource_type": "model",
+   "name": "dim_drg",
+   "alias": "dim_drg",
+   "schema": "marts",
+   "description": "One row per MS-DRG.",
+   "columns": {
+    "drg_code": {
+     "name": "drg_code",
+     "description": "MS-DRG code (primary key).",
+     "data_type": null
+    },
+    "drg_description": {
+     "name": "drg_description",
+     "description": "MS-DRG description, e.g. 'HEART FAILURE AND SHOCK WITH MCC'.",
+     "data_type": null
+    },
+    "mdc": {
+     "name": "mdc",
+     "description": "Major Diagnostic Category.",
+     "data_type": null
+    }
+   }
+  },
+  "model.medicare.fct_hospital_financials": {
+   "resource_type": "model",
+   "name": "fct_hospital_financials",
+   "alias": "fct_hospital_financials",
+   "schema": "marts",
+   "description": "Hospital cost-report financials by fiscal year.",
+   "columns": {
+    "provider_ccn": {
+     "name": "provider_ccn",
+     "description": "CMS Certification Number; joins to dim_hospitals.",
+     "data_type": null
+    },
+    "fiscal_year": {
+     "name": "fiscal_year",
+     "description": "Hospital fiscal year.",
+     "data_type": null
+    },
+    "net_patient_revenue": {
+     "name": "net_patient_revenue",
+     "description": "Net patient revenue (USD).",
+     "data_type": null
+    },
+    "operating_expenses": {
+     "name": "operating_expenses",
+     "description": "Total operating expenses (USD).",
+     "data_type": null
+    },
+    "operating_margin": {
+     "name": "operating_margin",
+     "description": "(net_patient_revenue - operating_expenses) / net_patient_revenue.",
+     "data_type": null
+    },
+    "total_beds": {
+     "name": "total_beds",
+     "description": "Number of staffed beds.",
+     "data_type": null
+    }
+   }
+  },
+  "model.medicare.stg_raw_claims": {
+   "resource_type": "model",
+   "name": "stg_raw_claims",
+   "schema": "staging",
+   "description": "not allow-listed",
+   "columns": {}
+  }
+ }
+}

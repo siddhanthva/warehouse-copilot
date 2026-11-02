@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      # Throwaway Postgres so the read-only-role tests (layer 2) run on every PR.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: uv sync --dev
+      - name: Lint
+        run: uv run ruff check .
+      - name: Unit tests (model mocked, no paid calls)
+        run: uv run pytest -q
+      - name: Seed synthetic warehouse + read-only role
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE warehouse"
+          psql -v ON_ERROR_STOP=1 -d warehouse -f scripts/dev_seed.sql
+          psql -v ON_ERROR_STOP=1 -d warehouse -v ro_password="'ci_ro'" -v app_password="'ci_app'" -v schema=marts -f scripts/setup_readonly_role.sql
+      - name: Integration tests (guard bypassed; DB role must refuse writes)
+        env:
+          RUN_INTEGRATION: "1"
+          DATABASE_URL: postgresql://copilot_ro:ci_ro@localhost:5432/warehouse
+          APP_STATE_DATABASE_URL: postgresql://copilot_app:ci_app@localhost:5432/warehouse
+        run: uv run pytest -q -m integration

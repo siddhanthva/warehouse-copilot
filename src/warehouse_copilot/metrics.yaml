@@ -1,0 +1,70 @@
+# Business metric definitions the model must reuse verbatim.
+# Written against the real dbt marts (schema dbt_dev). The warehouse has ONE period only,
+# so there are no year-over-year metrics. Verify each definition by hand before trusting it.
+# fct_medicare_drg stores PER-DISCHARGE averages, so totals are avg * total_discharges.
+
+total_discharges:
+  description: Number of Medicare inpatient discharges (additive, never average it)
+  sql: SUM(total_discharges)
+  grain: any
+  tables: [dbt_dev.fct_medicare_drg]
+
+avg_medicare_payment_per_discharge:
+  description: Average Medicare payment per discharge, weighted by discharges
+  sql: SUM(avg_medicare_payment_amount * total_discharges) / NULLIF(SUM(total_discharges), 0)
+  grain: hospital, DRG, state, service line
+  tables: [dbt_dev.fct_medicare_drg]
+
+total_medicare_payment:
+  description: Total dollars Medicare paid (per-discharge average times discharges)
+  sql: SUM(avg_medicare_payment_amount * total_discharges)
+  grain: any
+  tables: [dbt_dev.fct_medicare_drg]
+
+avg_charge_per_discharge:
+  description: Average amount billed per discharge, weighted by discharges
+  sql: SUM(avg_submitted_covered_charge * total_discharges) / NULLIF(SUM(total_discharges), 0)
+  grain: hospital, DRG, state, service line
+  tables: [dbt_dev.fct_medicare_drg]
+
+charge_to_payment_ratio:
+  description: How much is billed relative to what Medicare pays (markup), ratio of sums
+  sql: SUM(avg_submitted_covered_charge * total_discharges) / NULLIF(SUM(avg_medicare_payment_amount * total_discharges), 0)
+  grain: hospital, DRG, state, service line
+  tables: [dbt_dev.fct_medicare_drg]
+
+medicare_share_of_total_payment:
+  description: Share of total payment per discharge that Medicare covers (rest is coinsurance/other payers)
+  sql: SUM(avg_medicare_payment_amount * total_discharges) / NULLIF(SUM(avg_total_payment_amount * total_discharges), 0)
+  grain: hospital, DRG, state, service line
+  tables: [dbt_dev.fct_medicare_drg]
+
+estimated_margin_per_discharge:
+  description: Medicare payment minus estimated cost (charges x cost-to-charge ratio); an estimate, not reported cost
+  sql: AVG(margin)
+  grain: hospital x DRG (already the grain of mart_reimbursement_gap)
+  tables: [dbt_dev.mart_reimbursement_gap]
+
+charity_pct_of_revenue:
+  description: Charity care cost as a fraction of net patient revenue (0.05 = 5%). Across groups use SUM(charity_care_cost)/SUM(net_patient_revenue), not an average of ratios
+  sql: SUM(charity_care_cost) / NULLIF(SUM(net_patient_revenue), 0)
+  grain: hospital, state, ownership
+  tables: [dbt_dev.mart_finance_scorecard]
+
+uncompensated_pct_of_revenue:
+  description: Uncompensated care cost as a fraction of net patient revenue. Across groups use sum/sum
+  sql: SUM(uncompensated_care_cost) / NULLIF(SUM(net_patient_revenue), 0)
+  grain: hospital, state, ownership
+  tables: [dbt_dev.mart_finance_scorecard]
+
+net_margin:
+  description: Net income as a fraction of net patient revenue
+  sql: SUM(net_income) / NULLIF(SUM(net_patient_revenue), 0)
+  grain: hospital, state, ownership
+  tables: [dbt_dev.mart_finance_scorecard]
+
+hospital_count:
+  description: Number of distinct hospitals
+  sql: COUNT(DISTINCT hospital_key)
+  grain: any
+  tables: [dbt_dev.dim_hospital]

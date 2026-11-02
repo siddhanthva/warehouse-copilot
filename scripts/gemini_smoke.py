@@ -1,14 +1,7 @@
-"""Level 0 smoke test: one Gemini call on Vertex AI using ADC and .env settings."""
-import os
+"""Level 0 check: one Gemini call through Vertex AI. Needs `gcloud auth application-default login`."""
+from warehouse_copilot.agent.llm import make_llm
+from warehouse_copilot.config import get_settings
 
-from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-
-load_dotenv()
-llm = ChatGoogleGenerativeAI(
-    model=os.environ["GEMINI_MODEL"],
-    vertexai=True,
-    project=os.environ["GOOGLE_CLOUD_PROJECT"],
-    location=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
-)
-print(llm.invoke("Reply with one short sentence confirming you are reachable.").content)
+s = get_settings()
+reply = make_llm().invoke("Reply with one short sentence: what is Medicare?")
+print(f"[{s.gemini_model} @ {s.google_cloud_location}] {reply.text}")

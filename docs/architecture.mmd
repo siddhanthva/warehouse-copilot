@@ -1,0 +1,26 @@
+flowchart TD
+    U[Analyst in Streamlit<br/>access code + daily cap] -->|question| ST[select_tables<br/>Gemini]
+    ST --> GS[generate_sql<br/>Gemini structured output]
+    GS --> V{validate<br/>sqlglot guard}
+    V -->|violation, retries ≤ 2| GS
+    V -->|ambiguous| HR[human_review<br/>LangGraph interrupt]
+    V -->|ok| CA{check_approval<br/>EXPLAIN via MCP}
+    CA -->|DB error, retries ≤ 2| GS
+    CA -->|> threshold rows| HR
+    HR -->|clarification| GS
+    HR -->|approved| EX[execute<br/>run_readonly_query via MCP]
+    HR -->|rejected| RJ[rejected]
+    CA -->|cheap| EX
+    EX -->|DB error, retries ≤ 2| GS
+    EX --> SM[summarize<br/>answer + chart spec]
+    V -->|retries exhausted| F[fail]
+    SM --> U
+    subgraph MCP[MCP server · FastMCP · stdio]
+      T1[list_tables] --- T2[describe_table] --- T3[run_readonly_query] --- T4[estimate_query_cost] --- T5[get_metric_definition]
+    end
+    EX -.-> MCP
+    CA -.-> MCP
+    MCP -->|guard again, then copilot_ro role<br/>read-only, 10s timeout| DB[(PostgreSQL warehouse<br/>dbt marts)]
+    ST -.-> LF[Langfuse traces]
+    GS -.-> LF
+    SM -.-> LF
