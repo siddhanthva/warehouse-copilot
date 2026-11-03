@@ -56,3 +56,18 @@ def test_metrics_are_complete_and_use_allowed_tables():
         assert m.get("sql", "").strip(), f"{name}: no sql"
         assert m.get("tables"), f"{name}: no tables"
         assert {t.lower() for t in m["tables"]} <= allowed, f"{name}: table outside the allow-list"
+
+
+def test_snapshot_is_used_when_manifest_is_absent(tmp_path, monkeypatch):
+    """CI and Docker have only the committed snapshot, never manifest.json."""
+    import json
+
+    snap = {"marts.dim_drg": {"description": "DRGs", "columns": {"drg_code": {"type": "integer", "description": "code"}}}}
+    (tmp_path / "schema_docs.json").write_text(json.dumps(snap))
+    monkeypatch.setenv("DBT_TARGET_DIR", str(tmp_path))
+    monkeypatch.setenv("ALLOWED_TABLES", "marts.dim_drg")
+    get_settings.cache_clear()
+    schema_docs.get_schema_docs.cache_clear()
+    docs = schema_docs.get_schema_docs()
+    assert docs["marts.dim_drg"]["columns"]["drg_code"]["description"] == "code"
+    assert gaps(docs, ("marts.dim_drg",)) == []

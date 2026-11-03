@@ -1,0 +1,471 @@
+{
+ "dbt_dev.dim_drg": {
+  "columns": {
+   "drg_code": {
+    "description": "Medicare Severity Diagnosis Related Group (MS-DRG) code.",
+    "type": "integer"
+   },
+   "drg_description": {
+    "description": "MS-DRG description text (long names may be truncated in the seed).",
+    "type": "text"
+   },
+   "drg_key": {
+    "description": "Surrogate key (hash of drg_code). Join key to fct_medicare_drg.",
+    "type": "text"
+   },
+   "service_line": {
+    "description": "Clinical service line this DRG is grouped into (e.g. Cardiology, Orthopedics, Obstetrics).",
+    "type": "text"
+   }
+  },
+  "description": "DRG-to-service-line lookup, a thin passthrough of seed_drg_service_line."
+ },
+ "dbt_dev.dim_geography": {
+  "columns": {
+   "cbsa_code": {
+    "description": "Core-Based Statistical Area code. Join key from dim_hospital.cbsa_code.",
+    "type": "text"
+   },
+   "geography_key": {
+    "description": "Surrogate key (hash of cbsa_code).",
+    "type": "text"
+   },
+   "insurance_universe": {
+    "description": "Population for whom health insurance status was determined (ACS denominator).",
+    "type": "bigint"
+   },
+   "median_age": {
+    "description": "Median age in years of the metro area population (ACS).",
+    "type": "double precision"
+   },
+   "median_household_income": {
+    "description": "Median household income in US dollars for the metro area (ACS).",
+    "type": "bigint"
+   },
+   "metro_name": {
+    "description": "Metro area name from the Census ACS.",
+    "type": "text"
+   },
+   "total_population": {
+    "description": "Total population of the metro area (ACS).",
+    "type": "bigint"
+   },
+   "uninsured_count": {
+    "description": "Number of people without health insurance in the metro area (ACS).",
+    "type": "bigint"
+   },
+   "uninsured_rate": {
+    "description": "uninsured_count / insurance_universe, a fraction between 0 and 1.",
+    "type": "numeric"
+   }
+  },
+  "description": "One row per CBSA (metro area) with Census ACS demographics."
+ },
+ "dbt_dev.dim_hospital": {
+  "columns": {
+   "address": {
+    "description": "Street address of the hospital.",
+    "type": "text"
+   },
+   "birthing_friendly_designation": {
+    "description": "Whether the hospital has the CMS Birthing-Friendly designation.",
+    "type": "text"
+   },
+   "cbsa_code": {
+    "description": "Core-Based Statistical Area (metro area) code derived from the hospital's physical ZIP via the HUD crosswalk. Join key to dim_geography. NULL for ~138 rural hospitals outside any CBSA.\n",
+    "type": "text"
+   },
+   "ccn": {
+    "description": "CMS Certification Number, the 6-character federal hospital identifier.",
+    "type": "text"
+   },
+   "city": {
+    "description": "City where the hospital is located.",
+    "type": "text"
+   },
+   "county": {
+    "description": "County where the hospital is located.",
+    "type": "text"
+   },
+   "emergency_services": {
+    "description": "Whether the hospital provides emergency services (flag from Care Compare).",
+    "type": "text"
+   },
+   "hospital_key": {
+    "description": "Surrogate key (hash of ccn). Join key to the fact tables and marts.",
+    "type": "text"
+   },
+   "hospital_name": {
+    "description": "Hospital name as listed in CMS Care Compare (Hospital General Information).",
+    "type": "text"
+   },
+   "hospital_overall_rating": {
+    "description": "CMS overall star rating, 1 (lowest) to 5 (highest). Can be missing when the hospital is not rated.",
+    "type": "integer"
+   },
+   "hospital_ownership": {
+    "description": "Human-readable ownership category from CMS Care Compare, e.g. 'Voluntary non-profit - Private', 'Proprietary', 'Government - State'. Prefer this over ownership_type for readable output.\n",
+    "type": "text"
+   },
+   "is_cbsa_reclassified": {
+    "description": "True when medicare_payment_cbsa differs from cbsa_code (wage-index reclassification). NULL, not false, when either value is missing.\n",
+    "type": "boolean"
+   },
+   "medicare_payment_cbsa": {
+    "description": "CBSA used for Medicare payment (wage index) per the cost report. Can differ from cbsa_code when the hospital reclassified to another area's wage index. An attribute, not a join key.\n",
+    "type": "text"
+   },
+   "ownership_type": {
+    "description": "Numeric ownership code from the CMS cost report. Use hospital_ownership for readable labels.",
+    "type": "bigint"
+   },
+   "phone_number": {
+    "description": "Hospital main phone number.",
+    "type": "text"
+   },
+   "provider_type": {
+    "description": "Provider type from the CMS cost report.",
+    "type": "bigint"
+   },
+   "ruca_code": {
+    "description": "USDA Rural-Urban Commuting Area code for the hospital's ZIP (from the Medicare inpatient file).",
+    "type": "double precision"
+   },
+   "ruca_description": {
+    "description": "Text description of ruca_code (metropolitan core, small town, rural, etc.).",
+    "type": "text"
+   },
+   "rural_urban": {
+    "description": "Rural/urban classification from the CMS cost report.",
+    "type": "text"
+   },
+   "state": {
+    "description": "Two-letter US state or territory code (e.g. GA, TX, PR).",
+    "type": "text"
+   },
+   "zip_code": {
+    "description": "ZIP code of the hospital.",
+    "type": "text"
+   }
+  },
+  "description": "One row per hospital (CCN), enriched with CBSA, cost-report ownership, and RUCA rurality."
+ },
+ "dbt_dev.fct_hospital_finance": {
+  "columns": {
+   "bad_debt_expense": {
+    "description": "Bad debt expense in dollars.",
+    "type": "double precision"
+   },
+   "charity_care_cost": {
+    "description": "Cost of charity care provided, in dollars.",
+    "type": "double precision"
+   },
+   "cost_to_charge_ratio": {
+    "description": "~1% NULL in this table (down from ~24% in raw cost_report -- nearly all of that sparsity belongs to non-acute-care facility types already excluded by dim_hospital's filter). Legitimate missing data, not a pipeline defect, so not_null is severity warn.\n",
+    "type": "double precision"
+   },
+   "fiscal_year_begin_date": {
+    "description": "Start date of the hospital's cost report fiscal year.",
+    "type": "date"
+   },
+   "fiscal_year_end_date": {
+    "description": "End date of the hospital's cost report fiscal year.",
+    "type": "date"
+   },
+   "hospital_key": {
+    "description": "Foreign key to dim_hospital.",
+    "type": "text"
+   },
+   "inpatient_total_charges": {
+    "description": "Gross charges attributable to inpatient services in dollars.",
+    "type": "double precision"
+   },
+   "is_ccr_outlier": {
+    "description": "True where cost_to_charge_ratio is outside [0, 1]. See assert_ccr_between_0_and_1.",
+    "type": "boolean"
+   },
+   "net_income": {
+    "description": "Hospital net income in dollars; negative means a loss.",
+    "type": "double precision"
+   },
+   "net_income_from_service_to_patients": {
+    "description": "Net income from patient services only, excluding other income, in dollars.",
+    "type": "double precision"
+   },
+   "net_patient_revenue": {
+    "description": "Patient revenue after contractual allowances, in dollars. Use this as the revenue figure for margins and percent-of-revenue ratios. Non-positive for 5 hospitals because of upstream reporting errors.\n",
+    "type": "double precision"
+   },
+   "number_of_beds": {
+    "description": "Number of beds reported on the cost report. NULL for 8 hospitals.",
+    "type": "double precision"
+   },
+   "outpatient_total_charges": {
+    "description": "Gross charges attributable to outpatient services in dollars.",
+    "type": "double precision"
+   },
+   "total_assets": {
+    "description": "Total assets in dollars.",
+    "type": "double precision"
+   },
+   "total_bed_days_available": {
+    "description": "Total bed days available during the fiscal year.",
+    "type": "double precision"
+   },
+   "total_charges": {
+    "description": "Total gross (pre-discount) charges in dollars. Far larger than total_costs; not revenue.",
+    "type": "double precision"
+   },
+   "total_costs": {
+    "description": "Total hospital costs for the fiscal year in dollars.",
+    "type": "double precision"
+   },
+   "total_fund_balances": {
+    "description": "Total fund balances (equity) in dollars.",
+    "type": "double precision"
+   },
+   "total_liabilities": {
+    "description": "Total liabilities in dollars.",
+    "type": "double precision"
+   },
+   "total_unreimbursed_uncompensated_care": {
+    "description": "Total unreimbursed and uncompensated care in dollars, as reported on the cost report.",
+    "type": "double precision"
+   },
+   "uncompensated_care_cost": {
+    "description": "Cost of uncompensated care in dollars, as reported on the cost report.",
+    "type": "double precision"
+   }
+  },
+  "description": "One row per hospital (stg_cost_report is already deduped to the latest fiscal year per CCN). Dollar amounts are in US dollars."
+ },
+ "dbt_dev.fct_medicare_drg": {
+  "columns": {
+   "avg_medicare_payment_amount": {
+    "description": "Average payment by Medicare alone per discharge in dollars. Never above avg_total_payment_amount.",
+    "type": "double precision"
+   },
+   "avg_submitted_covered_charge": {
+    "description": "Average dollar amount the hospital billed per discharge for covered services (per-discharge average).",
+    "type": "double precision"
+   },
+   "avg_total_payment_amount": {
+    "description": "Average total payment per discharge in dollars, including Medicare, beneficiary coinsurance/deductible and other payers.",
+    "type": "double precision"
+   },
+   "drg_key": {
+    "description": "Foreign key to dim_drg.",
+    "type": "text"
+   },
+   "hospital_key": {
+    "description": "Foreign key to dim_hospital.",
+    "type": "text"
+   },
+   "total_discharges": {
+    "description": "Number of Medicare inpatient discharges for this hospital and DRG. Additive; sum it, do not average it.",
+    "type": "bigint"
+   }
+  },
+  "description": "Medicare inpatient payments, grain is hospital x DRG, from a single CMS public-use period (DY24). There is no year column, so year-over-year questions cannot be answered from this table.\n"
+ },
+ "dbt_dev.mart_burden_vs_community": {
+  "columns": {
+   "charity_pct_of_revenue": {
+    "description": "Charity care cost as a fraction of net patient revenue.",
+    "type": "double precision"
+   },
+   "hospital_key": {
+    "description": "Foreign key to dim_hospital.",
+    "type": "text"
+   },
+   "hospital_name": {
+    "description": "Hospital name.",
+    "type": "text"
+   },
+   "hospital_ownership": {
+    "description": "Ownership category.",
+    "type": "text"
+   },
+   "median_household_income": {
+    "description": "Median household income of the hospital's metro area, in dollars.",
+    "type": "bigint"
+   },
+   "metro_name": {
+    "description": "Metro area name; NULL for non-metro hospitals.",
+    "type": "text"
+   },
+   "net_patient_revenue": {
+    "description": "Patient revenue after contractual allowances, in dollars.",
+    "type": "double precision"
+   },
+   "uncompensated_pct_of_revenue": {
+    "description": "Uncompensated care cost as a fraction of net patient revenue.",
+    "type": "double precision"
+   },
+   "uninsured_rate": {
+    "description": "Share of the metro area's population without insurance, a fraction between 0 and 1.",
+    "type": "numeric"
+   }
+  },
+  "description": "Grain is one row per hospital (mart_finance_scorecard + dim_geography community stats, not pre-aggregated). uninsured_rate is NULL for the 138 hospitals with no CBSA (rural, outside any metro area) -- not_null is scoped to hospitals that have one.\n"
+ },
+ "dbt_dev.mart_finance_scorecard": {
+  "columns": {
+   "cbsa_code": {
+    "description": "Metro area (CBSA) code; NULL for non-metro hospitals.",
+    "type": "text"
+   },
+   "charity_care_cost": {
+    "description": "Cost of charity care in dollars.",
+    "type": "double precision"
+   },
+   "charity_pct_of_revenue": {
+    "description": "charity_care_cost / net_patient_revenue, a fraction (0.05 = 5%). NULL when revenue is non-positive.",
+    "type": "double precision"
+   },
+   "hospital_key": {
+    "description": "Foreign key to dim_hospital.",
+    "type": "text"
+   },
+   "hospital_name": {
+    "description": "Hospital name.",
+    "type": "text"
+   },
+   "hospital_ownership": {
+    "description": "Ownership category (e.g. 'Voluntary non-profit - Private', 'Proprietary').",
+    "type": "text"
+   },
+   "metro_name": {
+    "description": "Metro area name; NULL for non-metro hospitals.",
+    "type": "text"
+   },
+   "net_income": {
+    "description": "Net income in dollars; negative means a loss.",
+    "type": "double precision"
+   },
+   "net_patient_revenue": {
+    "description": "Patient revenue after contractual allowances, in dollars.",
+    "type": "double precision"
+   },
+   "number_of_beds": {
+    "description": "Number of beds from the cost report; NULL for 8 hospitals.",
+    "type": "double precision"
+   },
+   "uncompensated_care_cost": {
+    "description": "Cost of uncompensated care in dollars.",
+    "type": "double precision"
+   },
+   "uncompensated_pct_of_revenue": {
+    "description": "uncompensated_care_cost / net_patient_revenue, a fraction (0.05 = 5%). NULL when revenue is non-positive.",
+    "type": "double precision"
+   }
+  },
+  "description": "Grain is one row per hospital. charity_pct_of_revenue / uncompensated_pct_of_revenue use net_patient_revenue as the denominator and are NULL (not a garbage negative/divide-by-zero value) for the 5 hospitals with non-positive net_patient_revenue (see model SQL comment).\n"
+ },
+ "dbt_dev.mart_reimbursement_gap": {
+  "columns": {
+   "cbsa_code": {
+    "description": "Metro area (CBSA) code of the hospital; NULL for non-metro hospitals.",
+    "type": "text"
+   },
+   "charges": {
+    "description": "Average submitted covered charge per discharge in dollars.",
+    "type": "double precision"
+   },
+   "cost_to_charge_ratio": {
+    "description": "Hospital-wide cost-to-charge ratio from the cost report (same for every DRG of a hospital).",
+    "type": "double precision"
+   },
+   "derived_cost": {
+    "description": "Estimated cost per discharge in dollars = charges x cost_to_charge_ratio. An estimate, not a reported cost.",
+    "type": "double precision"
+   },
+   "drg_code": {
+    "description": "MS-DRG code.",
+    "type": "integer"
+   },
+   "drg_description": {
+    "description": "MS-DRG description text.",
+    "type": "text"
+   },
+   "drg_key": {
+    "description": "Foreign key to dim_drg.",
+    "type": "text"
+   },
+   "hospital_key": {
+    "description": "Foreign key to dim_hospital.",
+    "type": "text"
+   },
+   "hospital_name": {
+    "description": "Hospital name.",
+    "type": "text"
+   },
+   "margin": {
+    "description": "Estimated margin per discharge in dollars = medicare_payment - derived_cost. Negative means Medicare pays less than estimated cost.",
+    "type": "double precision"
+   },
+   "medicare_payment": {
+    "description": "Average Medicare payment per discharge in dollars.",
+    "type": "double precision"
+   },
+   "metro_name": {
+    "description": "Metro area name; NULL for non-metro hospitals.",
+    "type": "text"
+   },
+   "service_line": {
+    "description": "Clinical service line of the DRG (e.g. Cardiology, Orthopedics).",
+    "type": "text"
+   },
+   "total_discharges": {
+    "description": "Medicare discharges for this hospital and DRG. Additive.",
+    "type": "bigint"
+   }
+  },
+  "description": "Grain is hospital x DRG. derived_cost = charges x cost_to_charge_ratio; margin = medicare_payment - derived_cost. Hospitals with no usable CCR are excluded (see model SQL comment) so margin/derived_cost should never be NULL here.\n"
+ },
+ "dbt_dev.mart_service_line_margin": {
+  "columns": {
+   "avg_margin": {
+    "description": "Unweighted mean of per-discharge margin across hospital x DRG rows, in dollars. Not volume-weighted.",
+    "type": "double precision"
+   },
+   "global_rank": {
+    "description": "Rank of avg_margin across all qualifying groups, 1 = worst (lowest) margin. NULL when below the volume threshold.",
+    "type": "bigint"
+   },
+   "meets_volume_threshold": {
+    "description": "True when total_discharge_volume >= 30. Groups below it are excluded from ranking.",
+    "type": "boolean"
+   },
+   "metro_name": {
+    "description": "Metro area name; NULL means the non-metro group.",
+    "type": "text"
+   },
+   "metro_rank": {
+    "description": "Rank of avg_margin within the same metro, 1 = worst (lowest) margin. NULL when below the volume threshold.",
+    "type": "bigint"
+   },
+   "service_line": {
+    "description": "Clinical service line.",
+    "type": "text"
+   },
+   "service_line_margin_key": {
+    "description": "Surrogate key of service_line and metro_name.",
+    "type": "text"
+   },
+   "total_derived_cost": {
+    "description": "Sum of derived_cost across the group's hospital x DRG rows, in dollars.",
+    "type": "double precision"
+   },
+   "total_discharge_volume": {
+    "description": "Total Medicare discharges in the group.",
+    "type": "numeric"
+   },
+   "total_medicare_payment": {
+    "description": "Sum of average Medicare payment across the group's hospital x DRG rows, in dollars.",
+    "type": "double precision"
+   }
+  },
+  "description": "Grain is service_line x metro (metro_name NULL = non-metro hospitals). Ranking columns are intentionally NULL for groups under the 30-discharge volume threshold (see model SQL comment) -- not_null on those two is scoped to meets_volume_threshold = true rows only.\n"
+ }
+}

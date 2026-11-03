@@ -60,7 +60,7 @@ def _csv(value: str | None, default: tuple[str, ...]) -> tuple[str, ...]:
 class Settings:
     # Google Cloud / Gemini on Vertex AI
     google_cloud_project: str | None = None
-    google_cloud_location: str = "us-central1"
+    google_cloud_location: str = "global"
     gemini_model: str = "gemini-3.5-flash"  # verify current name in Vertex Model Garden
     gemini_model_alt: str = "gemini-3.1-pro-preview"
     # Gemini 3+: leave temperature unset (library default) and keep thinking low for cost.
@@ -110,7 +110,7 @@ def get_settings() -> Settings:
     env = os.environ.get
     return Settings(
         google_cloud_project=env("GOOGLE_CLOUD_PROJECT"),
-        google_cloud_location=env("GOOGLE_CLOUD_LOCATION", "us-central1"),
+        google_cloud_location=env("GOOGLE_CLOUD_LOCATION", "global"),
         gemini_model=env("GEMINI_MODEL", Settings.gemini_model),
         gemini_model_alt=env("GEMINI_MODEL_ALT", Settings.gemini_model_alt),
         thinking_level=env("GEMINI_THINKING_LEVEL", "low"),

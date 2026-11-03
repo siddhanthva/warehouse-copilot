@@ -12,4 +12,5 @@ evals/results/*
 target/
 dbt_target/*
 !dbt_target/README.md
+!dbt_target/schema_docs.json
 *.egg-info/

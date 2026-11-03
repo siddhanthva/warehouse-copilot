@@ -71,9 +71,29 @@ def parse_dbt_artifacts(target_dir: Path, allowed_tables: tuple[str, ...]) -> Ta
     return dict(sorted(docs.items()))
 
 
+SNAPSHOT_NAME = "schema_docs.json"
+
+
+def load_snapshot(target_dir: Path, allowed_tables: tuple[str, ...]) -> TableDocs:
+    """Read the slim docs snapshot (tables, columns, types, descriptions only).
+
+    Why: manifest.json is ~1 MB of dbt internals and is gitignored, so CI and the Docker
+    build never have it. The snapshot is small, holds only what the prompts use, and is committed.
+    """
+    raw = json.loads((target_dir / SNAPSHOT_NAME).read_text())
+    allowed = {t.lower() for t in allowed_tables}
+    docs = {t: info for t, info in raw.items() if t in allowed}
+    for key in allowed:
+        docs.setdefault(key, {"description": "", "columns": {}})
+    return dict(sorted(docs.items()))
+
+
 @lru_cache(maxsize=1)
 def get_schema_docs() -> TableDocs:
     s = get_settings()
+    # Freshly generated dbt artifacts win; the committed snapshot is the fallback.
+    if not (s.dbt_target_dir / "manifest.json").exists() and (s.dbt_target_dir / SNAPSHOT_NAME).exists():
+        return load_snapshot(s.dbt_target_dir, s.allowed_tables)
     return parse_dbt_artifacts(s.dbt_target_dir, s.allowed_tables)
 
 
