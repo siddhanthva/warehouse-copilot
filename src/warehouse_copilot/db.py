@@ -12,6 +12,7 @@ import decimal
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
+from urllib.parse import urlsplit
 from typing import Any
 
 import psycopg
@@ -40,11 +41,16 @@ def connect(url: str | None = None) -> Iterator[psycopg.Connection]:
     url = url or settings.database_url
     if not url:
         raise DatabaseNotConfigured("DATABASE_URL is not set (it must be the read-only role)")
-    options = (
-        f"-c statement_timeout={settings.statement_timeout_ms} "
-        "-c default_transaction_read_only=on "
-        "-c idle_in_transaction_session_timeout=15000"
-    )
+    # Neon's pooled endpoint (host contains "-pooler") rejects startup options. The role itself
+    # (scripts/setup_readonly_role.sql) already carries the same read-only / timeout settings, so
+    # skipping them there loses no protection; on a direct connection we send them as well.
+    options = None
+    if "-pooler" not in (urlsplit(url).hostname or ""):
+        options = (
+            f"-c statement_timeout={settings.statement_timeout_ms} "
+            "-c default_transaction_read_only=on "
+            "-c idle_in_transaction_session_timeout=15000"
+        )
     with psycopg.connect(
         url,
         connect_timeout=settings.connect_timeout_s,

@@ -8,6 +8,7 @@ a fresh thread, so we keep one loop alive in a daemon thread and submit work to 
 from __future__ import annotations
 
 import asyncio
+import sys
 import threading
 import time
 import uuid
@@ -77,7 +78,10 @@ class AgentRuntime:
 
     async def _make_checkpointer(self):
         url = get_settings().app_state_database_url
-        if not url:
+        # psycopg's async driver cannot run on Windows' default ProactorEventLoop, and the MCP stdio
+        # subprocess needs that loop, so on Windows we keep checkpoints in memory. Deployed
+        # (Linux) runs use Postgres so interrupts survive between requests.
+        if not url or sys.platform == "win32":
             # Fine for local dev and evals; interrupts won't survive a container restart.
             from langgraph.checkpoint.memory import InMemorySaver
 
