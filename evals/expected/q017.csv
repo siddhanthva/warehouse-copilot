@@ -1,0 +1,13 @@
+service_line,total_discharges
+General Medicine,1176849.0
+Cardiology,1131335.0
+Pulmonology/Respiratory,642710.0
+Gastroenterology,530833.0
+Renal/Urology,475373.0
+Orthopedics,436277.0
+Neurology,400226.0
+Psychiatry,75177.0
+General Surgery,47040.0
+Oncology,23085.0
+Other,3839.0
+Obstetrics,2123.0
