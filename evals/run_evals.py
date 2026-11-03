@@ -27,8 +27,11 @@ RESULTS_DIR = EVALS_DIR / "results"
 
 # USD per 1M tokens. Fill in current Vertex AI prices for your models (check the
 # Vertex AI pricing page); used only for the cost-per-question estimate.
+# Only add a model here after reading its price on Google's own Vertex AI pricing page. A model
+# with no entry reports cost as "unverified" (never $0 and never another model's rate), because
+# cost per question is a number you will quote.
 PRICES: dict[str, dict[str, float]] = {
-    "default": {"input": 0.0, "output": 0.0},
+    # "gemini-3.8-flash": {"input": ..., "output": ...},
 }
 
 
@@ -47,8 +50,10 @@ def load_expected(qid: str) -> list[list[str]]:
     return rows[1:]  # drop header
 
 
-def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
-    p = PRICES.get(model, PRICES["default"])
+def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float | None:
+    p = PRICES.get(model)
+    if p is None:
+        return None
     return (input_tokens * p["input"] + output_tokens * p["output"]) / 1_000_000
 
 
@@ -147,7 +152,9 @@ def aggregate(records: list[dict]) -> dict:
         "latency_p95_s": round(percentile(lat, 95), 2),
         "avg_input_tokens": round(sum(r["input_tokens"] for r in scored) / n),
         "avg_output_tokens": round(sum(r["output_tokens"] for r in scored) / n),
-        "avg_cost_usd": round(sum(r["cost_usd"] for r in scored) / n, 5),
+        "avg_cost_usd": (
+            None if any(r["cost_usd"] is None for r in scored) else round(sum(r["cost_usd"] for r in scored) / n, 5)
+        ),
         "ambiguous_asked_clarification": sum(r["asked_clarification"] for r in records if r["ambiguous"]),
         "ambiguous_total": sum(r["ambiguous"] for r in records),
         "unanswerable_declined": sum(r["match"] for r in unanswerable),
@@ -171,7 +178,9 @@ def markdown(model: str, summary: dict, records: list[dict]) -> str:
         f"| Avg retries | {summary['avg_retries']} |",
         f"| Latency p50 / p95 | {summary['latency_p50_s']}s / {summary['latency_p95_s']}s |",
         f"| Avg tokens in / out | {summary['avg_input_tokens']} / {summary['avg_output_tokens']} |",
-        f"| Est. cost per question | ${summary['avg_cost_usd']} |",
+        "| Est. cost per question | "
+        + ("unverified (no verified price for this model)" if summary["avg_cost_usd"] is None else f"${summary['avg_cost_usd']}")
+        + " |",
         f"| Ambiguous questions that asked to clarify | {summary['ambiguous_asked_clarification']}/{summary['ambiguous_total']} |",
         f"| Unanswerable questions correctly declined | {summary['unanswerable_declined']}/{summary['unanswerable_total']} |",
         "",

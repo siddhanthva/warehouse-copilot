@@ -60,6 +60,14 @@ def test_aggregate_by_difficulty_and_percentiles():
     assert s["latency_p50_s"] == 2.0
 
 
+def test_cost_is_unverified_without_a_price_never_zero():
+    assert run_evals.cost_usd("model-without-a-price", 1000, 1000) is None
+    recs = [dict(_rec("1", "easy", True), cost_usd=None)]
+    s = run_evals.aggregate(recs)
+    assert s["avg_cost_usd"] is None
+    assert "unverified" in run_evals.markdown("m", s, recs)
+
+
 def test_gate(tmp_path):
     base = tmp_path / "baseline.json"
     base.write_text(json.dumps({"execution_accuracy": 80.0}))
