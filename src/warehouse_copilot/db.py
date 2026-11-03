@@ -12,8 +12,8 @@ import decimal
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from urllib.parse import urlsplit
 from typing import Any
+from urllib.parse import urlsplit
 
 import psycopg
 
