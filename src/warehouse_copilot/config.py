@@ -107,7 +107,12 @@ class Settings:
 def get_settings() -> Settings:
     """Read settings once per process; tests call get_settings.cache_clear()."""
     _load_dotenv()
-    env = os.environ.get
+
+    def env(key: str, default: str | None = None) -> str | None:
+        # An empty value counts as unset: GitHub Actions turns an undefined variable into "",
+        # which would otherwise override every default (this broke the first CI eval run).
+        return os.environ.get(key) or default
+
     return Settings(
         google_cloud_project=env("GOOGLE_CLOUD_PROJECT"),
         google_cloud_location=env("GOOGLE_CLOUD_LOCATION", "global"),
