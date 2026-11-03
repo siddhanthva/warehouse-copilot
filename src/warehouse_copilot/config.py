@@ -95,7 +95,7 @@ class Settings:
     max_retries: int = 2
     max_clarifications: int = 2
     max_question_chars: int = 2_000
-    approval_row_threshold: int = 1_000_000
+    approval_row_threshold: int = 2_000_000
     max_candidate_tables: int = 5
 
     @property
@@ -126,5 +126,5 @@ def get_settings() -> Settings:
         metrics_path=Path(env("METRICS_PATH", str(PACKAGE_DIR / "metrics.yaml"))),
         default_schema=env("DEFAULT_SCHEMA", DEFAULT_SCHEMA).lower(),
         allowed_tables=_csv(env("ALLOWED_TABLES"), DEFAULT_ALLOWED_TABLES),
-        approval_row_threshold=int(env("APPROVAL_ROW_THRESHOLD", "1000000")),
+        approval_row_threshold=int(env("APPROVAL_ROW_THRESHOLD", "2000000")),
     )

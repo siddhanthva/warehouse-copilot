@@ -25,7 +25,7 @@ Two independent layers:
 ## Approval policy
 - Ambiguous question (model sets `ambiguous=true`) → pause with a clarifying question; max 2 rounds.
 - Expensive query: EXPLAIN (no ANALYZE) through MCP; if the largest row estimate in the plan exceeds
-  `APPROVAL_ROW_THRESHOLD` (start: 1,000,000) → pause with the SQL and estimate for Approve/Reject.
+  `APPROVAL_ROW_THRESHOLD` (2,000,000; see CLAUDE.md Decisions for why) → pause with the SQL and estimate for Approve/Reject.
 - **TODO(me):** the threshold you chose on the real warehouse and why.
 
 ## Evaluation method
