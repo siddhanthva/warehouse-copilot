@@ -21,7 +21,7 @@ def main() -> None:
     if problems:
         raise SystemExit(f"refusing to write a snapshot with missing descriptions: {problems[:10]}")
     out = s.dbt_target_dir / schema_docs.SNAPSHOT_NAME
-    out.write_text(json.dumps(docs, indent=1, sort_keys=True) + "\n")
+    out.write_text(json.dumps(docs, indent=1) + "\n")
     print(f"wrote {out} ({out.stat().st_size:,} bytes, {len(docs)} tables)")
 
 
