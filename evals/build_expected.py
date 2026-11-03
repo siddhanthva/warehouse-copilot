@@ -14,13 +14,16 @@ import sys
 from pathlib import Path
 
 import psycopg
+from dotenv import dotenv_values
 
 from evals.run_evals import EVALS_DIR, load_golden
 from warehouse_copilot.db import _jsonable
 
+ROOT = Path(__file__).resolve().parents[1]
+
 
 def main() -> int:
-    url = os.environ.get("ADMIN_DATABASE_URL")
+    url = os.environ.get("ADMIN_DATABASE_URL") or dotenv_values(ROOT / ".env").get("ADMIN_DATABASE_URL")
     if not url:
         print("ADMIN_DATABASE_URL is not set", file=sys.stderr)
         return 2
@@ -28,7 +31,11 @@ def main() -> int:
     out_dir.mkdir(exist_ok=True)
     golden = Path(sys.argv[1]) if len(sys.argv) > 1 else EVALS_DIR / "golden_set.jsonl"
     failures = 0
-    with psycopg.connect(url, options="-c statement_timeout=60000") as conn:
+    with psycopg.connect(url) as conn:
+        # Set the timeout after connecting: Neon's pooled hosts reject it as a startup option.
+        conn.autocommit = True
+        conn.execute("set statement_timeout = 60000")
+        conn.autocommit = False
         conn.read_only = True
         for item in load_golden(golden):
             if not item.get("gold_sql"):
