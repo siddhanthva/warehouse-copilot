@@ -89,3 +89,4 @@ Executed SQL is regenerated from the validated tree with comments stripped.
 - 2026-11-01 Questions over 2,000 chars are refused before any model call.
 - 2026-11-02 Merged the scaffold into this repo; allow-list/metrics rewritten for the real marts (schema `dbt_dev` is inferred from the Power BI model: VERIFY on Neon). dim_date excluded from the allow-list.
 - 2026-11-02 setup_readonly_role.sql takes `-v schema=...` so the same script serves the synthetic CI schema and the real one.
+- 2026-11-02 Gemini 3.x models return 404 on us-central1 for this project but work on the `global` endpoint, so GOOGLE_CLOUD_LOCATION=global. Cloud Run region is a separate CLOUD_RUN_REGION. Default model gemini-3.8-flash, comparison model gemini-3.5-flash-lite.

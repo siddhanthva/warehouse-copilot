@@ -2,7 +2,10 @@
 # Deploy to Cloud Run. Run the one-time setup section once, then just the deploy.
 set -euo pipefail
 : "${GOOGLE_CLOUD_PROJECT:?set GOOGLE_CLOUD_PROJECT}"
-REGION="${GOOGLE_CLOUD_LOCATION:-us-central1}"
+# Cloud Run region is separate from the Gemini endpoint: Gemini 3.x is served from "global",
+# which is not a valid Cloud Run region.
+REGION="${CLOUD_RUN_REGION:-us-central1}"
+MODEL_LOCATION="${GOOGLE_CLOUD_LOCATION:-global}"
 SA="warehouse-copilot-run@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com"
 
 if [[ "${1:-}" == "--setup" ]]; then
@@ -22,5 +25,5 @@ gcloud run deploy warehouse-copilot \
   --service-account "$SA" \
   --min-instances 0 --max-instances 2 --memory 1Gi --cpu 1 --timeout 300 \
   --set-secrets "DATABASE_URL=db-url:latest,APP_STATE_DATABASE_URL=app-state-db-url:latest,LANGFUSE_PUBLIC_KEY=langfuse-public-key:latest,LANGFUSE_SECRET_KEY=langfuse-secret-key:latest,APP_ACCESS_CODE=app-access-code:latest" \
-  --set-env-vars "GOOGLE_CLOUD_PROJECT=$GOOGLE_CLOUD_PROJECT,GOOGLE_CLOUD_LOCATION=$REGION,GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.5-flash},ALLOWED_TABLES=${ALLOWED_TABLES:?set ALLOWED_TABLES},LANGFUSE_BASE_URL=https://cloud.langfuse.com" \
+  --set-env-vars "GOOGLE_CLOUD_PROJECT=$GOOGLE_CLOUD_PROJECT,GOOGLE_CLOUD_LOCATION=$MODEL_LOCATION,GEMINI_MODEL=${GEMINI_MODEL:?set GEMINI_MODEL},ALLOWED_TABLES=${ALLOWED_TABLES:?set ALLOWED_TABLES},LANGFUSE_BASE_URL=https://cloud.langfuse.com" \
   --allow-unauthenticated
