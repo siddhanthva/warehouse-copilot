@@ -16,5 +16,7 @@ REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 -- Separate writable role + schema for the LangGraph checkpointer and the daily request
 -- counter (APP_STATE_DATABASE_URL). It cannot read or touch the warehouse marts.
 CREATE ROLE copilot_app LOGIN PASSWORD :app_password;
-CREATE SCHEMA IF NOT EXISTS app_state AUTHORIZATION copilot_app;
+-- (no AUTHORIZATION clause: managed Postgres such as Neon does not let the admin SET ROLE to it)
+CREATE SCHEMA IF NOT EXISTS app_state;
+GRANT ALL ON SCHEMA app_state TO copilot_app;
 ALTER ROLE copilot_app SET search_path = app_state;

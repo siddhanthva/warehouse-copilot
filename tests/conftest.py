@@ -35,7 +35,7 @@ def _isolated_settings(monkeypatch):
 
 def pytest_collection_modifyitems(config, items):
     """Integration tests need a real DATABASE_URL; skip them unless RUN_INTEGRATION=1."""
-    if os.environ.get("RUN_INTEGRATION") and os.environ.get("DATABASE_URL"):
+    if os.environ.get("RUN_INTEGRATION") and (os.environ.get("DATABASE_URL") or os.environ.get("REAL_WAREHOUSE")):
         return
     skip = pytest.mark.skip(reason="set RUN_INTEGRATION=1 and DATABASE_URL to run")
     for item in items:
