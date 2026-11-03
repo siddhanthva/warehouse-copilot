@@ -46,6 +46,25 @@ async def test_happy_path():
     assert "marts.dim_hospitals" in sql_prompt and "avg_medicare_payment_per_discharge" in sql_prompt
 
 
+async def test_unanswerable_question_declines_without_running_a_query():
+    llm = FakeLLM(
+        {
+            TableSelection: [tables()],
+            SQLDraft: [draft("", answerable=False, unanswerable_reason="The warehouse covers one period only.")],
+        }
+    )
+    wh = FakeWarehouse()
+    graph, cfg = make(llm, wh)
+
+    out = await graph.ainvoke({"question": "How did payments change from last year?"}, cfg)
+
+    assert out["status"] == "unanswerable"
+    assert "one period only" in out["answer"]
+    assert wh.executed == [] and wh.explained == []
+    assert out["retries"] == 0
+    assert out["usage"]["llm_calls"] == 2  # no summarize call
+
+
 async def test_validation_retry_feeds_guard_error_back():
     llm = FakeLLM(
         {

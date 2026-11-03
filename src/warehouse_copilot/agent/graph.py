@@ -6,7 +6,7 @@
                                    +-------- (retries <= 2) <-- human_review <-----------+
                                                  | exhausted       (interrupt: clarify / approve)
                                                  v
-                                               fail -> END
+                                               fail -> END      validate --not answerable--> decline -> END
 
 Deterministic steps (guard, retry cap, approval policy) are plain code. Only table
 selection, SQL writing and summarization call the model. `retries` counts every
@@ -121,6 +121,8 @@ def build_graph(
 
     def validate(state: AgentState) -> dict:
         draft = SQLDraft(**state["draft"])
+        if not draft.answerable:
+            return {"status": "unanswerable", "error": draft.unanswerable_reason}
         if draft.ambiguous and _can_clarify(state):
             return {"approval_type": "clarify", "needs_approval": True}
         if not draft.sql.strip():
@@ -244,6 +246,15 @@ def build_graph(
             ),
         }
 
+    def decline(state: AgentState) -> dict:
+        """The warehouse lacks the data. Say so plainly instead of running a made-up query."""
+        reason = state.get("error") or "the warehouse does not contain the data needed"
+        return {
+            "status": "unanswerable",
+            "answer": f"I can't answer that from this warehouse: {reason} "
+            "Try a question about hospitals, DRGs, finances or metro areas in the data.",
+        }
+
     def rejected(state: AgentState) -> dict:
         return {
             "status": "rejected",
@@ -259,7 +270,9 @@ def build_graph(
     def route_after_select(state: AgentState) -> Literal["generate_sql", "fail"]:
         return "fail" if state.get("status") == "refused" else "generate_sql"
 
-    def route_after_validate(state: AgentState) -> Literal["clarify", "ok", "retry", "fail"]:
+    def route_after_validate(state: AgentState) -> Literal["clarify", "ok", "retry", "fail", "decline"]:
+        if state.get("status") == "unanswerable":
+            return "decline"
         if state.get("approval_type") == "clarify":
             return "clarify"
         if state.get("validated_sql"):
@@ -288,6 +301,7 @@ def build_graph(
     g.add_node("summarize", summarize)
     g.add_node("fail", fail)
     g.add_node("rejected", rejected)
+    g.add_node("decline", decline)
 
     g.add_edge(START, "select_tables")
     g.add_conditional_edges("select_tables", route_after_select, {"generate_sql": "generate_sql", "fail": "fail"})
@@ -295,7 +309,13 @@ def build_graph(
     g.add_conditional_edges(
         "validate",
         route_after_validate,
-        {"clarify": "human_review", "ok": "check_approval", "retry": "generate_sql", "fail": "fail"},
+        {
+            "clarify": "human_review",
+            "ok": "check_approval",
+            "retry": "generate_sql",
+            "fail": "fail",
+            "decline": "decline",
+        },
     )
     g.add_conditional_edges(
         "check_approval",
@@ -308,5 +328,6 @@ def build_graph(
     g.add_edge("summarize", END)
     g.add_edge("fail", END)
     g.add_edge("rejected", END)
+    g.add_edge("decline", END)
 
     return g.compile(checkpointer=checkpointer)

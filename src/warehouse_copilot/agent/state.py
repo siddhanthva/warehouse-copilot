@@ -18,7 +18,10 @@ class TableSelection(BaseModel):
 class SQLDraft(BaseModel):
     """A single PostgreSQL SELECT plus what the model assumed while writing it."""
 
-    sql: str = Field(description="One PostgreSQL SELECT statement (CTEs allowed). No semicolons.")
+    sql: str = Field(
+        default="",
+        description="One PostgreSQL SELECT statement (CTEs allowed). No semicolons. Empty if not answerable.",
+    )
     tables_used: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(
         default_factory=list, description="Every interpretation you made, in plain English"
@@ -30,6 +33,14 @@ class SQLDraft(BaseModel):
     )
     clarifying_question: str | None = Field(
         default=None, description="The one question to ask the user when ambiguous is true"
+    )
+    answerable: bool = Field(
+        default=True,
+        description="False only if the warehouse does not contain the data needed at all "
+        "(e.g. another time period, individual doctors or patients).",
+    )
+    unanswerable_reason: str | None = Field(
+        default=None, description="One or two sentences on what data is missing, when answerable is false"
     )
 
 
@@ -71,7 +82,7 @@ class AgentState(TypedDict, total=False):
     result: dict | None  # {"columns": [...], "rows": [[...]], ...}
     answer: str | None
     chart_spec: dict | None
-    status: Literal["ok", "failed", "rejected", "refused"] | None
+    status: Literal["ok", "failed", "rejected", "refused", "unanswerable"] | None
     error: str | None
     attempts: Annotated[list[dict], operator.add]  # every SQL tried + why it failed
     usage: Annotated[dict, add_usage]  # {"input_tokens": n, "output_tokens": n, "llm_calls": n}

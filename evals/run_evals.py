@@ -86,6 +86,8 @@ def run_one(runtime, item: dict, model: str) -> dict:
         "id": item["id"],
         "difficulty": item.get("difficulty", "unknown"),
         "ambiguous": bool(item.get("ambiguous")),
+        "unanswerable": bool(item.get("unanswerable")),
+        "declined": turn.status == "unanswerable",
         "status": turn.status,
         "asked_clarification": clarified or (turn.paused and turn.interrupt.get("type") == "clarify"),
         "auto_approved": approved,
@@ -102,6 +104,10 @@ def run_one(runtime, item: dict, model: str) -> dict:
         "match": False,
     }
     rec["cost_usd"] = cost_usd(model, rec["input_tokens"], rec["output_tokens"])
+    if item.get("unanswerable"):
+        # Pass = the agent declined and never ran a query. No expected CSV exists for these.
+        rec["match"] = turn.status == "unanswerable" and st.get("result") is None
+        return rec
     if turn.status == "ok" and st.get("result") is not None:
         try:
             rec["match"] = results_match(
@@ -113,7 +119,12 @@ def run_one(runtime, item: dict, model: str) -> dict:
 
 
 def aggregate(records: list[dict]) -> dict:
-    scored = [r for r in records if not (r["ambiguous"] and r["status"] == "interrupted")]
+    scored = [
+        r
+        for r in records
+        if not (r["ambiguous"] and r["status"] == "interrupted") and not r.get("unanswerable")
+    ]
+    unanswerable = [r for r in records if r.get("unanswerable")]
 
     def acc(rs: list[dict]) -> float:
         return round(100 * sum(r["match"] for r in rs) / len(rs), 1) if rs else 0.0
@@ -139,6 +150,8 @@ def aggregate(records: list[dict]) -> dict:
         "avg_cost_usd": round(sum(r["cost_usd"] for r in scored) / n, 5),
         "ambiguous_asked_clarification": sum(r["asked_clarification"] for r in records if r["ambiguous"]),
         "ambiguous_total": sum(r["ambiguous"] for r in records),
+        "unanswerable_declined": sum(r["match"] for r in unanswerable),
+        "unanswerable_total": len(unanswerable),
     }
 
 
@@ -160,6 +173,7 @@ def markdown(model: str, summary: dict, records: list[dict]) -> str:
         f"| Avg tokens in / out | {summary['avg_input_tokens']} / {summary['avg_output_tokens']} |",
         f"| Est. cost per question | ${summary['avg_cost_usd']} |",
         f"| Ambiguous questions that asked to clarify | {summary['ambiguous_asked_clarification']}/{summary['ambiguous_total']} |",
+        f"| Unanswerable questions correctly declined | {summary['unanswerable_declined']}/{summary['unanswerable_total']} |",
         "",
         "### Failures",
         "",

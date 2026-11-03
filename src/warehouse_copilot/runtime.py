@@ -30,7 +30,7 @@ class Turn:
     """What one ask/resume call produced."""
 
     thread_id: str
-    status: str  # "ok" | "failed" | "rejected" | "refused" | "interrupted"
+    status: str  # "ok" | "failed" | "rejected" | "refused" | "unanswerable" | "interrupted"
     interrupt: dict | None = None
     state: dict = field(default_factory=dict)
     latency_s: float = 0.0

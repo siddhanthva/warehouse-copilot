@@ -98,8 +98,37 @@ def test_run_one_auto_clarifies_and_approves(tmp_path, monkeypatch):
     assert rec["match"] and rec["auto_approved"] and rec["asked_clarification"]
 
 
+class DeclineRuntime:
+    def __init__(self, status, result=None):
+        self.turn = Turn("t1", status, None, {"result": result, "attempts": [], "usage": {}})
+
+    def ask(self, question, **_):
+        return self.turn
+
+
+def test_unanswerable_passes_only_when_agent_declines_without_a_query():
+    item = {"id": "q61", "question": "year over year?", "difficulty": "unanswerable", "unanswerable": True}
+    assert run_evals.run_one(DeclineRuntime("unanswerable"), item, "m")["match"]
+    assert not run_evals.run_one(DeclineRuntime("ok", {"rows": [["x"]]}), item, "m")["match"]
+    assert not run_evals.run_one(DeclineRuntime("failed"), item, "m")["match"]
+
+
+def test_unanswerable_reported_separately_from_accuracy():
+    recs = [_rec("1", "easy", True), _rec("2", "unanswerable", True, status="unanswerable")]
+    recs[1]["unanswerable"] = True
+    s = run_evals.aggregate(recs)
+    assert s["n_scored"] == 1 and s["execution_accuracy"] == 100.0
+    assert (s["unanswerable_declined"], s["unanswerable_total"]) == (1, 1)
+
+
 def test_golden_set_file_is_valid():
     items = run_evals.load_golden(run_evals.EVALS_DIR / "golden_set.jsonl")
     for i in items:
-        assert {"id", "question", "difficulty", "gold_sql"} <= set(i)
-        assert i["difficulty"] in {"easy", "medium", "hard"}
+        assert {"id", "question", "difficulty"} <= set(i)
+        assert i["difficulty"] in {"easy", "medium", "hard", "ambiguous", "unanswerable"}
+        if i.get("unanswerable"):
+            assert not i.get("gold_sql")
+        else:
+            assert i.get("gold_sql")
+        if i.get("ambiguous"):
+            assert i.get("clarification")

@@ -28,7 +28,14 @@ Rules:
   rejected automatically.
 - Give every computed column a short snake_case alias. Round money to 2 decimals.
 - Add ORDER BY for any "top/highest/lowest" question and LIMIT for "top N".
-- List every interpretation you made in `assumptions` (e.g. which year when none given).
+- The warehouse holds ONE period only (Medicare inpatient discharges plus 2023 hospital cost
+  reports), at hospital, DRG, state and metro-area level. It has no year column, so it cannot
+  show change over time. It has no patient, physician, age, monthly or readmission data.
+- Set `answerable` = false ONLY when the question needs data the warehouse does not contain
+  (a different or earlier period, change over time, individual doctors or patients, age
+  groups, months). Leave `sql` empty and explain what is missing in `unanswerable_reason`.
+  Do not use this for questions the tables can answer, even imperfectly.
+- List every interpretation you made in `assumptions` (e.g. which filter you picked).
 - Set `ambiguous` = true ONLY when a reasonable analyst could not pick an interpretation
   (e.g. "best hospitals" with no metric). Then ask one short `clarifying_question`.
   Missing years or filters are not ambiguous: choose a sensible default and state it.
