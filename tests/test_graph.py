@@ -50,7 +50,8 @@ async def test_unanswerable_question_declines_without_running_a_query():
     llm = FakeLLM(
         {
             TableSelection: [tables()],
-            SQLDraft: [draft("", answerable=False, unanswerable_reason="The warehouse covers one period only.")],
+            # declined twice: once on the picked tables, once after re-checking with every table
+            SQLDraft: [draft("", answerable=False, unanswerable_reason="The warehouse covers one period only.")] * 2,
         }
     )
     wh = FakeWarehouse()
@@ -62,7 +63,43 @@ async def test_unanswerable_question_declines_without_running_a_query():
     assert "one period only" in out["answer"]
     assert wh.executed == [] and wh.explained == []
     assert out["retries"] == 0
-    assert out["usage"]["llm_calls"] == 2  # no summarize call
+    assert out["usage"]["llm_calls"] == 3  # select + two SQL drafts, no summarize call
+
+
+async def test_unanswerable_verdict_is_rechecked_with_every_table():
+    """A wrong table pick must not turn into a false 'can't answer'."""
+    llm = FakeLLM(
+        {
+            TableSelection: [tables("marts.dim_hospitals")],
+            SQLDraft: [draft("", answerable=False, unanswerable_reason="No payment columns."), draft()],
+            Summary: [summary()],
+        }
+    )
+    wh = FakeWarehouse()
+    graph, cfg = make(llm, wh)
+
+    out = await graph.ainvoke({"question": "Which hospital is paid most?"}, cfg)
+
+    assert out["status"] == "ok" and len(wh.executed) == 1
+    assert out["retries"] == 0 and out["widened"] is True
+    first, second = llm.prompts_for(SQLDraft)
+    assert "fct_inpatient_drg_payments" not in first and "fct_inpatient_drg_payments" in second
+
+
+async def test_unanswerable_after_widening_declines():
+    llm = FakeLLM(
+        {
+            TableSelection: [tables("marts.dim_hospitals")],
+            SQLDraft: [draft("", answerable=False, unanswerable_reason="No age data.")] * 2,
+        }
+    )
+    wh = FakeWarehouse()
+    graph, cfg = make(llm, wh)
+
+    out = await graph.ainvoke({"question": "Patient mix by age?"}, cfg)
+
+    assert out["status"] == "unanswerable" and "No age data." in out["answer"]
+    assert wh.executed == [] and out["usage"]["llm_calls"] == 3  # select + two SQL drafts
 
 
 async def test_validation_retry_feeds_guard_error_back():

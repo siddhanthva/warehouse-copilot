@@ -122,6 +122,12 @@ def build_graph(
     def validate(state: AgentState) -> dict:
         draft = SQLDraft(**state["draft"])
         if not draft.answerable:
+            all_tables = list(schema_docs.get_schema_docs())
+            if not state.get("widened") and set(state.get("candidate_tables") or []) != set(all_tables):
+                # The model only saw the tables select_tables picked, so "no data" may just mean
+                # the wrong tables. Give it the whole catalog once before declining. Not counted
+                # as a retry: routing sees no validated SQL and sends it back to generate_sql.
+                return {"candidate_tables": all_tables, "widened": True}
             return {"status": "unanswerable", "error": draft.unanswerable_reason}
         if draft.ambiguous and _can_clarify(state):
             return {"approval_type": "clarify", "needs_approval": True}

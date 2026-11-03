@@ -69,6 +69,7 @@ class AgentState(TypedDict, total=False):
     question: str
     clarifications: list[str]
     candidate_tables: list[str]
+    widened: bool  # True once an 'unanswerable' verdict was re-checked with every table
     draft: dict  # SQLDraft.model_dump()
     validated_sql: str | None
     validation_error: str | None
