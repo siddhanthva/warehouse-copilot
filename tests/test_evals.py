@@ -77,6 +77,14 @@ def test_gate(tmp_path):
     assert run_evals.gate({"execution_accuracy": 0.0}, base, 3.0)[0]
 
 
+def test_gate_refuses_to_compare_different_models(tmp_path):
+    base = tmp_path / "baseline.json"
+    base.write_text(json.dumps({"model": "model-a", "execution_accuracy": 80.0}))
+    assert run_evals.gate({"execution_accuracy": 90.0}, base, 3.0, "model-a")[0]
+    ok, msg = run_evals.gate({"execution_accuracy": 99.0}, base, 3.0, "model-b")
+    assert not ok and "model-a" in msg and "model-b" in msg
+
+
 class FakeRuntime:
     """Pauses once for clarification, once for approval, then answers."""
 

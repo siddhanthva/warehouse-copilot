@@ -193,11 +193,14 @@ def markdown(model: str, summary: dict, records: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def gate(summary: dict, baseline_path: Path, max_drop: float) -> tuple[bool, str]:
+def gate(summary: dict, baseline_path: Path, max_drop: float, model: str | None = None) -> tuple[bool, str]:
     base = json.loads(baseline_path.read_text()) if baseline_path.exists() else {}
     ref = base.get("execution_accuracy")
     if ref is None:
         return True, "No baseline recorded yet; gate skipped. Commit a baseline.json to enable it."
+    if model and base.get("model") and base["model"] != model:
+        # Accuracy is not comparable across models, so fail loudly instead of passing or failing by luck.
+        return False, f"baseline was recorded for {base['model']} but this run used {model}: refusing to compare"
     now = summary["execution_accuracy"]
     ok = now >= ref - max_drop
     return ok, f"accuracy {now}% vs baseline {ref}% (allowed drop {max_drop} pts): {'PASS' if ok else 'FAIL'}"
@@ -251,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.baseline).write_text(json.dumps({"model": model, "date": stamp, **summary}, indent=2))
         print(f"baseline written to {args.baseline}")
     if args.gate:
-        ok, msg = gate(summary, Path(args.baseline), args.max_drop)
+        ok, msg = gate(summary, Path(args.baseline), args.max_drop, model)
         print(msg)
         return 0 if ok else 1
     return 0
