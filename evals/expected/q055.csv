@@ -1,0 +1,52 @@
+state,service_line,total_medicare_payment,pct_of_state_total
+AK,General Medicine,61743749.0,30.61
+AL,Cardiology,206788588.0,26.01
+AR,Cardiology,182900237.0,27.96
+AZ,Cardiology,373776317.0,26.17
+CA,General Medicine,2786767147.0,28.98
+CO,Cardiology,169594943.0,23.69
+CT,General Medicine,245616615.0,26.87
+DC,Cardiology,135640023.0,33.02
+DE,Cardiology,93546088.0,24.33
+FL,Cardiology,1489055815.0,26.92
+GA,Cardiology,476683510.0,26.25
+HI,General Medicine,63439984.0,30.84
+IA,Cardiology,157855258.0,26.99
+ID,Cardiology,70208045.0,28.07
+IL,Cardiology,755919600.0,25.4
+IN,Cardiology,361950762.0,26.33
+KS,Cardiology,174780053.0,24.44
+KY,Cardiology,227098375.0,26.58
+LA,General Medicine,179127165.0,26.1
+MA,Cardiology,793177924.0,25.76
+MD,General Medicine,699767976.0,24.64
+ME,Cardiology,69819485.0,34.24
+MI,Cardiology,472052618.0,27.56
+MN,Cardiology,394655895.0,29.41
+MO,Cardiology,368468805.0,26.18
+MS,General Medicine,181272344.0,29.29
+MT,Cardiology,68434012.0,30.81
+NC,Cardiology,546873278.0,27.07
+ND,Cardiology,67168489.0,30.86
+NE,Cardiology,133393820.0,28.01
+NH,Cardiology,121177502.0,32.49
+NJ,Cardiology,688572119.0,26.04
+NM,General Medicine,83635869.0,31.05
+NV,General Medicine,181867086.0,28.34
+NY,General Medicine,1712345505.0,26.1
+OH,Cardiology,665318139.0,29.11
+OK,General Medicine,224984325.0,24.62
+OR,Cardiology,198780514.0,29.3
+PA,Cardiology,823947999.0,26.39
+RI,Cardiology,49887249.0,25.09
+SC,Cardiology,354242961.0,29.54
+SD,Cardiology,86744993.0,28.12
+TN,Cardiology,411729668.0,27.75
+TX,Cardiology,1296759280.0,26.95
+UT,Cardiology,93915214.0,23.9
+VA,Cardiology,562278703.0,27.61
+VT,Cardiology,26979977.0,30.68
+WA,Cardiology,398826142.0,29.8
+WI,Cardiology,270131142.0,29.66
+WV,Cardiology,124521400.0,30.24
+WY,General Medicine,23954078.0,26.23
