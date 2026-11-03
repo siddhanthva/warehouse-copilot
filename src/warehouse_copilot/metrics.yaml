@@ -40,21 +40,27 @@ medicare_share_of_total_payment:
   tables: [dbt_dev.fct_medicare_drg]
 
 estimated_margin_per_discharge:
-  description: Medicare payment minus estimated cost (charges x cost-to-charge ratio); an estimate, not reported cost
-  sql: AVG(margin)
-  grain: hospital x DRG (already the grain of mart_reimbursement_gap)
+  description: Medicare payment minus estimated cost (charges x cost-to-charge ratio), per discharge and weighted by discharges across rows; an estimate, not reported cost. margin is already per discharge, so weight it, never take a plain AVG across hospital x DRG rows
+  sql: SUM(margin * total_discharges) / NULLIF(SUM(total_discharges), 0)
+  grain: hospital, service line, DRG, state (rows of mart_reimbursement_gap are hospital x DRG)
   tables: [dbt_dev.mart_reimbursement_gap]
 
 charity_pct_of_revenue:
-  description: Charity care cost as a fraction of net patient revenue (0.05 = 5%). Across groups use SUM(charity_care_cost)/SUM(net_patient_revenue), not an average of ratios
-  sql: SUM(charity_care_cost) / NULLIF(SUM(net_patient_revenue), 0)
+  description: Charity care cost as a fraction of net patient revenue (0.05 = 5%). The column is per hospital. For a state or category "average" use the mean of the hospitals' values. Only if asked for the group's share of its TOTAL revenue use SUM(charity_care_cost) / NULLIF(SUM(net_patient_revenue), 0)
+  sql: AVG(charity_pct_of_revenue)
   grain: hospital, state, ownership
   tables: [dbt_dev.mart_finance_scorecard]
 
 uncompensated_pct_of_revenue:
-  description: Uncompensated care cost as a fraction of net patient revenue. Across groups use sum/sum
-  sql: SUM(uncompensated_care_cost) / NULLIF(SUM(net_patient_revenue), 0)
+  description: Uncompensated care cost as a fraction of net patient revenue. The column is per hospital. For a state or category "average" use the mean of the hospitals' values
+  sql: AVG(uncompensated_pct_of_revenue)
   grain: hospital, state, ownership
+  tables: [dbt_dev.mart_finance_scorecard]
+
+uncompensated_share_of_total_revenue:
+  description: A group's total uncompensated care cost divided by its total net patient revenue (pooled share; big hospitals weigh more). Use when asked what share of a group's total revenue goes to uncompensated care
+  sql: SUM(uncompensated_care_cost) / NULLIF(SUM(net_patient_revenue), 0)
+  grain: state, ownership
   tables: [dbt_dev.mart_finance_scorecard]
 
 net_margin:
