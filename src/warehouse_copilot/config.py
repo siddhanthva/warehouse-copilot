@@ -111,7 +111,11 @@ def get_settings() -> Settings:
     def env(key: str, default: str | None = None) -> str | None:
         # An empty value counts as unset: GitHub Actions turns an undefined variable into "",
         # which would otherwise override every default (this broke the first CI eval run).
-        return os.environ.get(key) or default
+        value = (os.environ.get(key) or "").strip().strip("\"'").strip()
+        # A secret pasted as "NAME=value" (name included) is a common slip; the name is not part of the value.
+        if value.startswith(f"{key}="):
+            value = value[len(key) + 1 :].strip().strip("\"'")
+        return value or default
 
     return Settings(
         google_cloud_project=env("GOOGLE_CLOUD_PROJECT"),

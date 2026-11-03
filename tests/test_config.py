@@ -21,3 +21,9 @@ def test_set_env_values_still_win(monkeypatch):
     monkeypatch.setenv("GEMINI_MODEL", "my-model")
     config.get_settings.cache_clear()
     assert config.get_settings().gemini_model == "my-model"
+
+
+def test_secret_pasted_with_its_name_or_quotes_is_cleaned(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", ' "DATABASE_URL=postgresql://u:p@host/db" ')
+    config.get_settings.cache_clear()
+    assert config.get_settings().database_url == "postgresql://u:p@host/db"

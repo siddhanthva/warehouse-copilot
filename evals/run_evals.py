@@ -57,6 +57,21 @@ def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float | None:
     return (input_tokens * p["input"] + output_tokens * p["output"]) / 1_000_000
 
 
+def preflight() -> str | None:
+    """Check the database is reachable before spending model calls; returns an error text or None.
+
+    Why: a bad DATABASE_URL made every question fail after three retries and the run reported
+    0% accuracy, which looks like a model problem. Infrastructure failures must stop the run.
+    """
+    from warehouse_copilot import db
+
+    try:
+        db.run("select 1")
+    except Exception as err:  # message only: never print the URL
+        return f"{type(err).__name__}: {str(err).splitlines()[0][:200]}"
+    return None
+
+
 def percentile(values: list[float], pct: float) -> float:
     if not values:
         return 0.0
@@ -222,6 +237,10 @@ def main(argv: list[str] | None = None) -> int:
     from warehouse_copilot.runtime import AgentRuntime
 
     model = args.model or get_settings().gemini_model
+    problem = preflight()
+    if problem:
+        print(f"Database preflight failed, not running the eval: {problem}", file=sys.stderr)
+        return 2
     items = load_golden(Path(args.golden))
     if args.ids:
         wanted = set(args.ids.split(","))

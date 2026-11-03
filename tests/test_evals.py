@@ -68,6 +68,19 @@ def test_cost_is_unverified_without_a_price_never_zero():
     assert "unverified" in run_evals.markdown("m", s, recs)
 
 
+def test_preflight_reports_an_unreachable_database_without_the_url(monkeypatch):
+    from warehouse_copilot import db
+
+    def boom(*a, **k):
+        raise RuntimeError("invalid connection option " + chr(34) + "DATABASE_URL" + chr(34) + chr(10) + "secret details")
+
+    monkeypatch.setattr(db, "run", boom)
+    msg = run_evals.preflight()
+    assert msg and "invalid connection option" in msg and "secret details" not in msg
+    monkeypatch.setattr(db, "run", lambda *a, **k: {"rows": [[1]]})
+    assert run_evals.preflight() is None
+
+
 def test_gate(tmp_path):
     base = tmp_path / "baseline.json"
     base.write_text(json.dumps({"execution_accuracy": 80.0}))
