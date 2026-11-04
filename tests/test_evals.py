@@ -161,3 +161,8 @@ def test_golden_set_file_is_valid():
             assert i.get("gold_sql")
         if i.get("ambiguous"):
             assert i.get("clarification")
+
+
+def test_match_ignores_letter_case_in_text():
+    assert results_match([["Non-Profit", 62.5]], [["Non-profit", "62.5"]])
+    assert not results_match([["Non-Profit", 62.5]], [["Proprietary", "62.5"]])

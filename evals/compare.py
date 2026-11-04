@@ -3,7 +3,8 @@
 Rules (from the plan):
   * compare values, not column names (aliases differ),
   * ignore row order unless order_matters is true,
-  * round numerics to 2 decimals.
+  * round numerics to 2 decimals,
+  * ignore letter case in text.
 Extra rule: column order is ignored too, by matching each gold column to a predicted
 column with identical values (so "SELECT a, b" and "SELECT b, a" both match).
 """
@@ -30,9 +31,9 @@ def _norm(v: Any) -> Any:
         return 0.0 if r == 0 else r
     s = str(v).strip()
     try:  # CSV round-trips numbers as text
-        return _norm(float(s)) if s and s.lower() not in {"nan", "inf", "-inf"} else (s or None)
+        return _norm(float(s)) if s and s.lower() not in {"nan", "inf", "-inf"} else (s.casefold() or None)
     except ValueError:
-        return s
+        return s.casefold()  # "Non-Profit" and "Non-profit" are the same answer
 
 
 def normalize_rows(rows: list[list[Any]]) -> list[tuple]:
