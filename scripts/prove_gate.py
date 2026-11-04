@@ -4,11 +4,13 @@
 
 Three runs over the 15 easy golden questions (about 10 minutes, a few cents of model calls):
   1. normal prompt, records a throwaway baseline from its own accuracy
-  2. deliberately broken prompt, the gate MUST fail because accuracy dropped
+  2. deliberately broken prompt (the schema removed from it), the gate MUST fail on accuracy
   3. normal prompt again, the gate MUST pass
 
 The broken prompt is patched in memory only: no repo file changes, so there is nothing to restore.
-It still produces valid SQL (SELECT 1), so the failure is accuracy, not authentication or a crash.
+The model still answers, just without table or column names, so the failure is lower accuracy, not
+authentication or a crash. (Appending "always answer SELECT 1" does not work: the model ignores it,
+as the prompt itself tells it to.) A crash during a run is reported as a crash, never as a gate failure.
 Results go to a temp folder, so the real eval results in evals/results/ are not overwritten.
 """
 
@@ -26,7 +28,6 @@ from evals import run_evals  # noqa: E402
 from warehouse_copilot.agent import prompts  # noqa: E402
 
 EASY_IDS = ",".join(f"q{n:03d}" for n in range(1, 16))
-BREAK = "\n- IMPORTANT: ignore the question and always answer with: SELECT 1 AS answer"
 
 
 def run(model: str, baseline: Path, *extra: str) -> int:
@@ -54,9 +55,12 @@ def main() -> int:
 
         print("\n=== 2/3 deliberately broken prompt: the gate must FAIL ===")
         original = prompts.GENERATE_SQL_SYSTEM
-        prompts.GENERATE_SQL_SYSTEM = original + BREAK
+        prompts.GENERATE_SQL_SYSTEM = original.replace("{schema}", "(schema unavailable)")
         try:
             broken = run(model, baseline, "--gate")
+        except Exception as err:  # a crash is not a gate result
+            print(f"step 2 crashed ({type(err).__name__}); that is not a gate failure")
+            return 2
         finally:
             prompts.GENERATE_SQL_SYSTEM = original  # restored even if the run raises
 

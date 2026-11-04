@@ -1,5 +1,38 @@
 {
-  "model": null,
-  "execution_accuracy": null,
-  "note": "Set by `python -m evals.run_evals --write-baseline` after your first accepted run. The nightly gate is skipped until this is filled."
+  "model": "gemini-3.8-flash",
+  "date": "2026-11-04",
+  "n_questions": 58,
+  "n_scored": 55,
+  "execution_accuracy": 98.2,
+  "by_difficulty": {
+    "ambiguous": {
+      "n": 5,
+      "execution_accuracy": 100.0
+    },
+    "easy": {
+      "n": 15,
+      "execution_accuracy": 100.0
+    },
+    "hard": {
+      "n": 13,
+      "execution_accuracy": 92.3
+    },
+    "medium": {
+      "n": 22,
+      "execution_accuracy": 100.0
+    }
+  },
+  "valid_sql_rate": 100.0,
+  "first_try_valid_rate": 100.0,
+  "avg_retries": 0,
+  "latency_p50_s": 9.92,
+  "latency_p95_s": 17.81,
+  "avg_input_tokens": 4778,
+  "avg_output_tokens": 588,
+  "avg_cost_usd": null,
+  "ambiguous_asked_clarification": 5,
+  "ambiguous_total": 5,
+  "unanswerable_declined": 3,
+  "unanswerable_total": 3,
+  "note": "Recorded 2026-11-04 from the first full run on the cleaned golden set (58 questions, 55 scored). IN-SAMPLE: prompts and gold answers were tuned against these questions; no holdout set existed yet. Cost is unverified (no price set). The nightly gate fails if execution accuracy drops more than 3 points below this, and refuses to compare a different model."
 }

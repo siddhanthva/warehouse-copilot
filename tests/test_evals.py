@@ -81,6 +81,23 @@ def test_preflight_reports_an_unreachable_database_without_the_url(monkeypatch):
     assert run_evals.preflight() is None
 
 
+def test_a_transient_api_error_is_retried_then_recorded_not_fatal():
+    class Flaky:
+        def __init__(self, fail_times):
+            self.fail_times = fail_times
+
+        def ask(self, question, **_):
+            if self.fail_times > 0:
+                self.fail_times -= 1
+                raise RuntimeError("429 RESOURCE_EXHAUSTED: please retry")
+            return Turn("t", "unanswerable", None, {"result": None, "attempts": [], "usage": {}})
+
+    item = {"id": "q61", "question": "x", "difficulty": "unanswerable", "unanswerable": True}
+    assert run_evals.run_one_resilient(Flaky(1), item, "m", wait_s=0)["match"]  # recovered on the retry
+    rec = run_evals.run_one_resilient(Flaky(5), item, "m", wait_s=0)  # still failing: recorded, not raised
+    assert rec["status"] == "error" and not rec["match"] and "RESOURCE_EXHAUSTED" in rec["error"]
+
+
 def test_gate(tmp_path):
     base = tmp_path / "baseline.json"
     base.write_text(json.dumps({"execution_accuracy": 80.0}))

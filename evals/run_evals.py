@@ -57,6 +57,31 @@ def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float | None:
     return (input_tokens * p["input"] + output_tokens * p["output"]) / 1_000_000
 
 
+def run_one_resilient(runtime, item: dict, model: str, *, wait_s: float = 45.0) -> dict:
+    """run_one, but a transient API error (rate limit, network) must not abort a 58-question run.
+
+    Retries once after a pause; if it fails again the question is recorded as an error and counts
+    against accuracy, with the error text in the report so it is not mistaken for a wrong answer.
+    """
+    for attempt in (1, 2):
+        try:
+            return run_one(runtime, item, model)
+        except Exception as err:  # noqa: BLE001 - any model/transport error, reported below
+            if attempt == 1:
+                print(f"  {item['id']}: {type(err).__name__}, retrying once in {wait_s:.0f}s", flush=True)
+                time.sleep(wait_s)
+                continue
+            return {
+                "id": item["id"], "difficulty": item.get("difficulty", "unknown"),
+                "ambiguous": bool(item.get("ambiguous")), "unanswerable": bool(item.get("unanswerable")),
+                "declined": False, "status": "error", "asked_clarification": False, "auto_approved": False,
+                "sql": None, "valid_sql": False, "first_try_valid": False, "retries": 0, "latency_s": 0.0,
+                "input_tokens": 0, "output_tokens": 0, "cost_usd": cost_usd(model, 0, 0),
+                "error": f"{type(err).__name__}: {str(err).splitlines()[0][:160]}", "match": False,
+            }
+    raise AssertionError("unreachable")
+
+
 def preflight() -> str | None:
     """Check the database is reachable before spending model calls; returns an error text or None.
 
@@ -252,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
     records = []
     try:
         for item in items:
-            rec = run_one(runtime, item, model)
+            rec = run_one_resilient(runtime, item, model)
             records.append(rec)
             mark = "PASS" if rec["match"] else "FAIL"
             print(f"[{mark}] {rec['id']} {rec['difficulty']:<6} {rec['latency_s']:>6.1f}s retries={rec['retries']}", flush=True)
