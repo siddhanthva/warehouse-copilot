@@ -261,3 +261,13 @@ def test_graph_shape():
     nodes = set(graph.get_graph().nodes)
     assert {"select_tables", "generate_sql", "validate", "check_approval", "human_review",
             "execute", "summarize", "fail", "rejected"} <= nodes
+
+
+def test_prompts_carry_the_data_notes_learned_from_eval_failures():
+    """Guards the rules added after the first full eval (keys vs names, per-discharge totals, DRG codes)."""
+    from warehouse_copilot.agent import prompts
+
+    sql_rules = prompts.GENERATE_SQL_SYSTEM
+    for marker in ("Never return only a surrogate key", "drg_code = 291", "SUM(value *", "mart_service_line_margin", "within each"):
+        assert marker in sql_rules, marker
+    assert "mart_service_line_margin" in prompts.SELECT_TABLES_SYSTEM
